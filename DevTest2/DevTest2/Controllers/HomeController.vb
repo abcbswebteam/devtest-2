@@ -8,36 +8,26 @@
 
     Function CsvReport() As ActionResult
 
-        Response.ContentType = "text/plain"
-        Response.Write("CustomerId, Name, OrderCount, SalesTotal" & vbCr)
+        Dim sb As New StringBuilder()
+
+        sb.AppendLine("CustomerId, Name, OrderCount, SalesTotal")
 
         Using db As New AppDbContext()
 
-            'get customers
-            Dim customers = From c In db.Customers
-                            Order By c.CustomerId
-                            Select c
+            'get customers with orders
+            Dim customersOrders = From c In db.Customers
+                                  Group Join o In db.Orders On o.Customer.CustomerId Equals c.CustomerId
+                                  Into customList = Group, orderCount = Count, salesTotal = Sum(o.SalesTotal)
+                                  Select c.CustomerId, c.Name, orderCount, salesTotal
 
-            For Each c In customers
-                Response.Write(String.Format("{0}, {1}, ", c.CustomerId, c.Name))
-
-                'get orders
-                Dim orders = From o In db.Orders
-                             Where o.Customer.CustomerId = c.CustomerId
-                             Select o
-
-                Dim orderCount As Integer = 0
-                Dim salesTotal As Decimal = 0
-                For Each o In orders
-                    orderCount += 1
-                    salesTotal += o.SalesTotal
-                Next
-
-                Response.Write(String.Format("{0}, {1}", orderCount, salesTotal.ToString("0.##")) & vbCr)
+            For Each c In customersOrders
+                sb.AppendLine($"{c.CustomerId}, {c.Name}, {c.orderCount}, {c.salesTotal.ToString("0.##")}")
             Next
 
         End Using
 
+        Response.ContentType = "text/plain"
+        Response.Write(sb.ToString())
         Response.End()
 
         Return Nothing
