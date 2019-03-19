@@ -13,27 +13,29 @@
 
         Using db As New AppDbContext()
 
-            'get customers
-            Dim customers = From c In db.Customers
-                            Order By c.CustomerId
-                            Select c
+            Dim sortedCustomer = db.Customers.OrderBy(Function(item) item.CustomerId)
+            Dim InnerjoinCustomerAndOrder = sortedCustomer.Join(db.Orders,
+                                    Function(customer) customer.CustomerId,
+                                    Function(order) order.Customer.CustomerId,
+                                    Function(customer, order) New With
+                                    {
+                                        .orderCount = db.Orders.Where(Function(t) t.Customer.CustomerId = customer.CustomerId).Count(Function(k) k.Customer.CustomerId),
+                                        .customerId = customer.CustomerId,
+                                        .salesTotal = db.Orders.Where(Function(t) t.Customer.CustomerId = customer.CustomerId).Sum(Function(k) k.SalesTotal),
+                                        .customerName = customer.Name
+                                    })
 
-            For Each c In customers
-                Response.Write(String.Format("{0}, {1}, ", c.CustomerId, c.Name))
+            Dim salesTotal As Decimal = 0
+            Dim orderCount As Integer = 0
+            Dim Name As String = String.Empty
+            Dim customerId As Integer = 0
+            For Each obj In InnerjoinCustomerAndOrder.Distinct
 
-                'get orders
-                Dim orders = From o In db.Orders
-                             Where o.Customer.CustomerId = c.CustomerId
-                             Select o
-
-                Dim orderCount As Integer = 0
-                Dim salesTotal As Decimal = 0
-                For Each o In orders
-                    orderCount += 1
-                    salesTotal += o.SalesTotal
-                Next
-
-                Response.Write(String.Format("{0}, {1}", orderCount, salesTotal.ToString("0.##")) & vbCr)
+                customerId = obj.customerId
+                Name = obj.customerName
+                orderCount = obj.orderCount
+                salesTotal = obj.salesTotal
+                Response.Write(String.Format("{0}, {1} {2} {3} ", customerId, Name, orderCount, salesTotal.ToString("0.##")) & vbCr)
             Next
 
         End Using
