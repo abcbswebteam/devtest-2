@@ -1,4 +1,6 @@
-﻿Public Class HomeController
+﻿Imports System.Data.Entity
+
+Public Class HomeController
     Inherits System.Web.Mvc.Controller
 
     Function Index() As ActionResult
@@ -14,11 +16,9 @@
         Using db As New AppDbContext()
 
             'get customers
-            Dim customers = From c In db.Customers
-                            Order By c.CustomerId
-                            Select c
+            Dim customerOrders = (From customer In db.Customers.Include(Function(o) o.Orders) Select customer).ToList()
 
-            For Each c In customers
+            For Each c In customerOrders
                 Response.Write(String.Format("{0}, {1}, ", c.CustomerId, c.Name))
 
                 'get orders
@@ -28,10 +28,9 @@
 
                 Dim orderCount As Integer = 0
                 Dim salesTotal As Decimal = 0
-                For Each o In orders
-                    orderCount += 1
-                    salesTotal += o.SalesTotal
-                Next
+
+                orderCount = c.orders.Count
+                salesTotal = c.orders.Sum(Function(st) st.salesTotal)
 
                 Response.Write(String.Format("{0}, {1}", orderCount, salesTotal.ToString("0.##")) & vbCr)
             Next
