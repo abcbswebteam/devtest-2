@@ -1,4 +1,6 @@
-﻿Public Class HomeController
+﻿Imports System.Data.Entity
+
+Public Class HomeController
     Inherits System.Web.Mvc.Controller
 
     Function Index() As ActionResult
@@ -7,37 +9,24 @@
     End Function
 
     Function CsvReport() As ActionResult
-
-        Response.ContentType = "text/plain"
-        Response.Write("CustomerId, Name, OrderCount, SalesTotal" & vbCr)
-
+        Dim SalesTotalInfo As StringBuilder = New StringBuilder()
+        'Response.ContentType = "text/plain"
+        'Response.Write("CustomerId, Name, OrderCount, SalesTotal" & vbCr)
+        SalesTotalInfo.Append("CustomerId, Name, OrderCount, SalesTotal" & vbCr)
         Using db As New AppDbContext()
 
             'get customers
-            Dim customers = From c In db.Customers
-                            Order By c.CustomerId
-                            Select c
+            Dim customers = (From c In db.Customers
+                             Order By c.CustomerId
+                             Select New With {c, c.Orders.Count, c.Orders.Select(Function(x) x.SalesTotal).Sum()}).ToList() ', c.Orders.Count()
 
-            For Each c In customers
-                Response.Write(String.Format("{0}, {1}, ", c.CustomerId, c.Name))
-
-                'get orders
-                Dim orders = From o In db.Orders
-                             Where o.Customer.CustomerId = c.CustomerId
-                             Select o
-
-                Dim orderCount As Integer = 0
-                Dim salesTotal As Decimal = 0
-                For Each o In orders
-                    orderCount += 1
-                    salesTotal += o.SalesTotal
-                Next
-
-                Response.Write(String.Format("{0}, {1}", orderCount, salesTotal.ToString("0.##")) & vbCr)
+            For Each cust In customers
+                SalesTotalInfo.Append(String.Format("{0}, {1}, {2}, {3}", cust.c.CustomerId, cust.c.Name, cust.Count, cust.Sum.ToString("0.##") & vbCr))
             Next
 
         End Using
-
+        Response.ContentType = "text/plain"
+        Response.Write(SalesTotalInfo)
         Response.End()
 
         Return Nothing
