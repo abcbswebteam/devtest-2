@@ -13,28 +13,8 @@
 
         Using db As New AppDbContext()
 
-            'get customers
-            Dim customers = From c In db.Customers
-                            Order By c.CustomerId
-                            Select c
+            Dim customers = From c In db.Customers                            Order By c.CustomerId                            Group c By keys = New With {Key c.CustomerId, Key c.Name}                                Into gp = Group, Sales = Sum(c.Orders.Sum(Function(X) X.SalesTotal)), Count = Sum(c.Orders.Count)                            Select New With {                                .customerId = keys.CustomerId,                                .name = keys.Name,                                .orderCount = Count,                                .salesTotal = Sales                                 }            For Each c In customers                Response.Write(String.Format("{0}, {1}, {2}, {3}", c.customerId, c.name, c.orderCount, c.salesTotal.ToString("0.##")) & vbCr)            Next
 
-            For Each c In customers
-                Response.Write(String.Format("{0}, {1}, ", c.CustomerId, c.Name))
-
-                'get orders
-                Dim orders = From o In db.Orders
-                             Where o.Customer.CustomerId = c.CustomerId
-                             Select o
-
-                Dim orderCount As Integer = 0
-                Dim salesTotal As Decimal = 0
-                For Each o In orders
-                    orderCount += 1
-                    salesTotal += o.SalesTotal
-                Next
-
-                Response.Write(String.Format("{0}, {1}", orderCount, salesTotal.ToString("0.##")) & vbCr)
-            Next
 
         End Using
 
