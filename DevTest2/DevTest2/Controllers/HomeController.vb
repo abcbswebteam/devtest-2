@@ -14,7 +14,8 @@
         Using db As New AppDbContext()
 
             'get customers
-            Dim customers = From c In db.Customers
+            Dim customers = From c In db.Customers _
+                            .Include("Orders") 'pull in Orders property based on foreign key
                             Order By c.CustomerId
                             Select c
 
@@ -22,13 +23,14 @@
                 Response.Write(String.Format("{0}, {1}, ", c.CustomerId, c.Name))
 
                 'get orders
-                Dim orders = From o In db.Orders
-                             Where o.Customer.CustomerId = c.CustomerId
-                             Select o
+                'Dim orders = From o In db.Orders
+                '             Where o.Customer.CustomerId = c.CustomerId
+                '             Select o
 
                 Dim orderCount As Integer = 0
                 Dim salesTotal As Decimal = 0
-                For Each o In orders
+                'For Each o In orders
+                For Each o In c.Orders
                     orderCount += 1
                     salesTotal += o.SalesTotal
                 Next
